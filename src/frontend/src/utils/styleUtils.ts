@@ -300,6 +300,7 @@ import { QDrantIcon } from "../icons/QDrant";
 import { QianFanChatIcon } from "../icons/QianFanChat";
 import { RedisIcon } from "../icons/Redis";
 import { SambaNovaIcon } from "../icons/SambaNova";
+import { ScikitLearnIcon } from "../icons/ScikitLearn";
 import ScrapeGraph from "../icons/ScrapeGraphAI/ScrapeGraphAI";
 import { SearxIcon } from "../icons/Searx";
 import { SerperIcon } from "../icons/Serper";
@@ -551,6 +552,7 @@ export const SIDEBAR_BUNDLES = [
   { display_name: "Mem0", name: "mem0", icon: "Mem0" },
   { display_name: "Youtube", name: "youtube", icon: "YouTube" },
   { display_name: "ScrapeGraph AI", name: "scrapegraph", icon: "ScrapeGraph" },
+  { display_name: "Scikit-Learn", name: "scikit-learn", icon: "ScikitLearn" },
 ];
 
 export const categoryIcons = {
@@ -641,6 +643,7 @@ export const nodeIconsLucide: iconsType = {
   Anthropic: AnthropicIcon,
   ArXiv: ArXivIcon,
   ChatAnthropic: AnthropicIcon,
+  ScikitLearn: ScikitLearnIcon,
   assemblyai: AssemblyAIIcon,
   AgentQL: AgentQLIcon,
   AssemblyAI: AssemblyAIIcon,
