@@ -4,7 +4,7 @@ from sklearn.metrics import classification_report
 
 from langflow.custom import Component
 from langflow.io import BoolInput, HandleInput, Output
-from langflow.schema import DataFrame, Data
+from langflow.schema import Data, DataFrame
 
 
 class ClassificationReportComponent(Component):
@@ -61,11 +61,7 @@ class ClassificationReportComponent(Component):
         y_pred = self.process_input(self.y_pred)
 
         # Generate the classification report
-        self.report_data = classification_report(
-            y_true,
-            y_pred,
-            output_dict=True
-        )
+        self.report_data = classification_report(y_true, y_pred, output_dict=True)
 
     def get_classification_report(self) -> Data:
         """Return the classification report as a dictionary."""
