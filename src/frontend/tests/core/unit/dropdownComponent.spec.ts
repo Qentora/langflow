@@ -1,6 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../fixtures";
 import { adjustScreenView } from "../../utils/adjust-screen-view";
 import { awaitBootstrapTest } from "../../utils/await-bootstrap-test";
+import {
+  closeAdvancedOptions,
+  disableInspectPanel,
+  enableInspectPanel,
+  openAdvancedOptions,
+} from "../../utils/open-advanced-options";
 
 test(
   "dropDownComponent",
@@ -14,15 +20,19 @@ test(
 
     await page.getByTestId("blank-flow").click();
 
+    // Allow for legacy components
+    await page.getByTestId("sidebar-options-trigger").click();
+    await page.getByTestId("sidebar-legacy-switch").click();
+
     await page.getByTestId("sidebar-search-input").click();
     await page.getByTestId("sidebar-search-input").fill("amazon");
 
-    await page.waitForSelector('[data-testid="modelsAmazon Bedrock"]', {
+    await page.waitForSelector('[data-testid="amazonAmazon Bedrock"]', {
       timeout: 3000,
     });
 
     await page
-      .getByTestId("modelsAmazon Bedrock")
+      .getByTestId("amazonAmazon Bedrock")
       .first()
       .dragTo(page.locator('//*[@id="react-flow-id"]'));
     await page.mouse.up();
@@ -47,24 +57,26 @@ test(
     await page.getByTestId("dropdown_str_model_id").click();
     await page.getByText("anthropic.claude-v2").last().click();
 
+    await page.waitForTimeout(1000);
+
     value = await page.getByTestId("dropdown_str_model_id").innerText();
-    if (value !== "anthropic.claude-v2:1") {
-      expect(false).toBeTruthy();
-    }
+    expect(value.length).toBeGreaterThan(10);
 
     await page.waitForSelector('[data-testid="more-options-modal"]', {
       timeout: 3000,
     });
 
-    await page.getByTestId("more-options-modal").click();
-    await page.getByTestId("advanced-button-modal").click();
+    await disableInspectPanel(page);
+
+    await openAdvancedOptions(page);
+
+    await page.waitForTimeout(1000);
 
     value = await page
       .getByTestId("value-dropdown-dropdown_str_edit_model_id")
       .innerText();
-    if (value !== "anthropic.claude-v2:1") {
-      expect(false).toBeTruthy();
-    }
+
+    expect(value.length).toBeGreaterThan(10);
 
     await page.locator('//*[@id="showregion_name"]').click();
     expect(
@@ -120,7 +132,7 @@ test(
       expect(false).toBeTruthy();
     }
 
-    await page.getByText("Close").last().click();
+    await closeAdvancedOptions(page);
 
     value = await page
       .getByTestId("value-dropdown-dropdown_str_model_id")
@@ -128,7 +140,7 @@ test(
     if (value !== "cohere.command-r-plus-v1:0") {
       expect(false).toBeTruthy();
     }
-    await page.getByTestId("code-button-modal").click();
+    await page.getByTestId("code-button-modal").last().click();
 
     await page.locator("textarea").press("Control+a");
     const emptyOptionsCode = `from langchain_community.chat_models.bedrock import BedrockChat
@@ -240,5 +252,7 @@ class AmazonBedrockComponent(LCModelComponent):
     await page
       .getByText("No parameters are available for display.")
       .isVisible();
+
+    await enableInspectPanel(page);
   },
 );

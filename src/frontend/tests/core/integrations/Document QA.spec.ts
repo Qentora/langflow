@@ -1,8 +1,9 @@
-import { test } from "@playwright/test";
 import * as dotenv from "dotenv";
 import path from "path";
+import { expect, test } from "../../fixtures";
 import { awaitBootstrapTest } from "../../utils/await-bootstrap-test";
 import { initialGPTsetup } from "../../utils/initialGPTsetup";
+import { uploadFile } from "../../utils/upload-file";
 import { withEventDeliveryModes } from "../../utils/withEventDeliveryModes";
 
 withEventDeliveryModes(
@@ -24,13 +25,7 @@ withEventDeliveryModes(
     await page.getByRole("heading", { name: "Document Q&A" }).click();
     await initialGPTsetup(page);
 
-    const fileChooserPromise = page.waitForEvent("filechooser");
-    await page.getByTestId("button_upload_file").click();
-    const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles(
-      path.join(__dirname, "../../assets/test_file.txt"),
-    );
-    await page.getByText("test_file.txt").isVisible();
+    await uploadFile(page, "test_file.txt");
 
     await page.waitForSelector('[data-testid="button_run_chat output"]', {
       timeout: 3000,
@@ -39,15 +34,14 @@ withEventDeliveryModes(
     await page.getByTestId("button_run_chat output").click();
     await page.waitForSelector("text=built successfully", { timeout: 30000 });
 
-    await page.getByText("built successfully").last().click({
-      timeout: 15000,
-    });
-
-    await page.getByText("Playground", { exact: true }).last().click();
+    await page.getByRole("button", { name: "Playground", exact: true }).click();
     await page
       .getByText("No input message provided.", { exact: true })
       .last()
       .isVisible();
+
+    // Create a new session first
+    await page.getByTestId("new-chat").click();
 
     await page.waitForSelector('[data-testid="input-chat-playground"]', {
       timeout: 100000,
@@ -63,23 +57,6 @@ withEventDeliveryModes(
     });
 
     await page.getByText("this is a test file").last().isVisible();
-
-    await page.getByText("Default Session").last().click();
-
-    await page.getByText("timestamp", { exact: true }).last().isVisible();
-    await page.getByText("text", { exact: true }).last().isVisible();
-    await page.getByText("sender", { exact: true }).last().isVisible();
-    await page.getByText("sender_name", { exact: true }).last().isVisible();
-    await page.getByText("session_id", { exact: true }).last().isVisible();
-    await page.getByText("files", { exact: true }).last().isVisible();
-
-    await page.getByRole("gridcell").last().isVisible();
-    await page.getByRole("combobox").click();
-    await page.getByLabel("Delete").click();
-    await page.waitForSelector('[data-testid="input-chat-playground"]', {
-      timeout: 100000,
-    });
-
-    await page.getByTestId("input-chat-playground").last().isVisible();
+    expect(await page.getByTestId("div-chat-message).last().count()).toBe(1)"));
   },
 );

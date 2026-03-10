@@ -1,17 +1,15 @@
-import { Button } from "../../../../../components/ui/button";
+import { useEffect, useState } from "react";
 
 import { usePostUploadFile } from "@/controllers/API/queries/files/use-post-upload-file";
+import { getBaseUrl } from "@/customization/utils/urls";
 import { createFileUpload } from "@/helpers/create-file-upload";
 import useFileSizeValidator from "@/shared/hooks/use-file-size-validator";
 import useAlertStore from "@/stores/alertStore";
-import { useEffect, useState } from "react";
 import IconComponent from "../../../../../components/common/genericIconComponent";
-import {
-  ALLOWED_IMAGE_INPUT_EXTENSIONS,
-  BASE_URL_API,
-} from "../../../../../constants/constants";
+import { Button } from "../../../../../components/ui/button";
+import { ALLOWED_IMAGE_INPUT_EXTENSIONS } from "../../../../../constants/constants";
 import useFlowsManagerStore from "../../../../../stores/flowsManagerStore";
-import { IOFileInputProps } from "../../../../../types/components";
+import type { IOFileInputProps } from "../../../../../types/components";
 
 export default function IOFileInput({ field, updateValue }: IOFileInputProps) {
   //component to handle file upload from chatIO
@@ -21,7 +19,7 @@ export default function IOFileInput({ field, updateValue }: IOFileInputProps) {
   const [filePath, setFilePath] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const setErrorData = useAlertStore((state) => state.setErrorData);
-  const { validateFileSize } = useFileSizeValidator(setErrorData);
+  const { validateFileSize } = useFileSizeValidator();
 
   useEffect(() => {
     if (filePath) {
@@ -33,7 +31,7 @@ export default function IOFileInput({ field, updateValue }: IOFileInputProps) {
     if (field) {
       const fileName = field.split("/")[1];
       const flowFileId = currentFlowId.toString();
-      setImage(`${BASE_URL_API}files/images/${flowFileId}/${fileName}`);
+      setImage(`${getBaseUrl()}files/images/${flowFileId}/${fileName}`);
     }
   }, []);
 
@@ -78,7 +76,14 @@ export default function IOFileInput({ field, updateValue }: IOFileInputProps) {
 
   const upload = async (file) => {
     if (file) {
-      if (!validateFileSize(file)) {
+      try {
+        validateFileSize(file);
+      } catch (e) {
+        if (e instanceof Error) {
+          setErrorData({
+            title: e.message,
+          });
+        }
         return;
       }
       // Check if a file was selected

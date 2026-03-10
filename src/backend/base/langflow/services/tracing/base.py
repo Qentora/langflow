@@ -8,8 +8,8 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from langchain.callbacks.base import BaseCallbackHandler
+    from lfx.graph.vertex.base import Vertex
 
-    from langflow.graph.vertex.base import Vertex
     from langflow.services.tracing.schema import Log
 
 
@@ -17,7 +17,15 @@ class BaseTracer(ABC):
     trace_id: UUID
 
     @abstractmethod
-    def __init__(self, trace_name: str, trace_type: str, project_name: str, trace_id: UUID):
+    def __init__(
+        self,
+        trace_name: str,
+        trace_type: str,
+        project_name: str,
+        trace_id: UUID,
+        user_id: str | None = None,
+        session_id: str | None = None,
+    ) -> None:
         raise NotImplementedError
 
     @property

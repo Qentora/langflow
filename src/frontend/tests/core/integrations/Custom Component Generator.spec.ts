@@ -1,11 +1,10 @@
-import { expect, test } from "@playwright/test";
 import * as dotenv from "dotenv";
 import path from "path";
+import { expect, test } from "../../fixtures";
 import { awaitBootstrapTest } from "../../utils/await-bootstrap-test";
 import { getAllResponseMessage } from "../../utils/get-all-response-message";
-import { initialGPTsetup } from "../../utils/initialGPTsetup";
-import { waitForOpenModalWithChatInput } from "../../utils/wait-for-open-modal";
 import { withEventDeliveryModes } from "../../utils/withEventDeliveryModes";
+import { selectAnthropicModel } from "../../utils/select-anthropic-model";
 
 withEventDeliveryModes(
   "Custom Component Generator",
@@ -26,48 +25,33 @@ withEventDeliveryModes(
 
     await page.getByTestId("side_nav_options_all-templates").click();
     await page.getByTestId("template-custom-component-generator").click();
-
-    await page.waitForSelector('[data-testid="fit_view"]', {
+    await page.waitForSelector('[data-testid="canvas_controls_dropdown"]', {
       timeout: 100000,
     });
 
-    try {
-      await page
-        .getByTestId("anchor-popover-anchor-input-api_key")
-        .last()
-        .fill(process.env.ANTHROPIC_API_KEY ?? "");
-    } catch (e) {
-      console.log("There's API already added");
-    }
+    await selectAnthropicModel(page);
 
-    await page.waitForSelector('[data-testid="dropdown_str_model_name"]', {
-      timeout: 5000,
-    });
+    await page.getByTestId("playground-btn-flow-io").click();
 
-    await page.getByTestId("dropdown_str_model_name").click();
-
-    await page.keyboard.press("Enter");
-
-    await page.getByTestId("button_run_chat output").click();
-    await page.waitForSelector("text=built successfully", { timeout: 30000 });
-
-    await page.getByText("built successfully").last().click({
-      timeout: 15000,
-    });
-
-    await page.getByText("Playground", { exact: true }).last().click();
     await page
-      .getByText("No input message provided.", { exact: true })
+      .getByTestId("input-chat-playground")
       .last()
-      .isVisible();
+      .fill(
+        "Create a custom component that can generate a random number between 1 and 100 and is called Langflow Random Number",
+      );
 
-    await waitForOpenModalWithChatInput(page);
+    await page.getByTestId("button-send").last().click();
+
+    await page.waitForTimeout(1000);
+
+    const stopButton = page.getByRole("button", { name: "Stop" });
+    await stopButton.waitFor({ state: "hidden", timeout: 30000 * 3 });
 
     const textContents = await getAllResponseMessage(page);
     expect(textContents.length).toBeGreaterThan(100);
     expect(await page.getByTestId("chat-code-tab").last().isVisible()).toBe(
       true,
     );
-    expect(textContents).toContain("langflow");
+    expect(textContents.toLowerCase()).toContain("langflow");
   },
 );

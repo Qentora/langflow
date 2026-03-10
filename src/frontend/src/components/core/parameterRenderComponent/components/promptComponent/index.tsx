@@ -1,46 +1,17 @@
-import { GRADIENT_CLASS } from "@/constants/constants";
+import ForwardedIconComponent from "@/components/common/genericIconComponent";
+import SanitizedHTMLWrapper from "@/components/common/sanitizedHTMLWrapper";
+import { regexHighlight } from "@/constants/constants";
 import PromptModal from "@/modals/promptModal";
 import { cn } from "../../../../../utils/utils";
-import IconComponent from "../../../../common/genericIconComponent";
 import { Button } from "../../../../ui/button";
 import { getPlaceholder } from "../../helpers/get-placeholder-disabled";
-import { InputProps, PromptAreaComponentType } from "../../types";
+import type { InputProps, PromptAreaComponentType } from "../../types";
 
 const promptContentClasses = {
-  base: "overflow-hidden text-clip whitespace-nowrap bg-background",
-  editNode: "input-edit-node input-dialog",
-  normal: "primary-input text-muted-foreground",
+  base: "overflow-hidden text-clip whitespace-nowrap bg-background h-fit max-h-28",
+  editNode: "input-edit-node input-dialog py-2",
+  normal: "primary-input text-primary",
   disabled: "disabled-state",
-};
-
-const externalLinkIconClasses = {
-  gradient: ({
-    disabled,
-    editNode,
-  }: {
-    disabled: boolean;
-    editNode: boolean;
-  }) =>
-    disabled
-      ? ""
-      : editNode
-        ? "gradient-fade-input-edit-node "
-        : "gradient-fade-input ",
-  background: ({
-    disabled,
-    editNode,
-  }: {
-    disabled: boolean;
-    editNode: boolean;
-  }) =>
-    disabled
-      ? ""
-      : editNode
-        ? "background-fade-input-edit-node "
-        : "background-fade-input",
-  icon: "icons-parameters-comp absolute right-3 h-4 w-4 shrink-0",
-  editNodeTop: "top-[0.375rem]",
-  normalTop: "top-2.5",
 };
 
 export default function PromptAreaComponent({
@@ -53,7 +24,38 @@ export default function PromptAreaComponent({
   editNode = false,
   id = "",
   readonly = false,
-}: InputProps<string, PromptAreaComponentType>): JSX.Element {
+  showParameter = true,
+}: InputProps<string, PromptAreaComponentType>): JSX.Element | null {
+  const coloredContent = (typeof value === "string" ? value : "")
+    // escape HTML first
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    // highlight variables
+    .replace(regexHighlight, (match, codeFence, openRun, varName, closeRun) => {
+      // 1) Leave ```code``` blocks untouched
+      if (codeFence) return match;
+
+      // 2) Balanced & odd-length brace runs mean "real variable"
+      const lenOpen = openRun?.length ?? 0;
+      const lenClose = closeRun?.length ?? 0;
+      const isVariable = lenOpen === lenClose && lenOpen % 2 === 1;
+
+      if (!isVariable) return match; // even runs are just escapes
+
+      // 3) Number of literal braces outside the span
+      const outerCount = Math.floor(lenOpen / 2);
+      const outerLeft = "{".repeat(outerCount);
+      const outerRight = "}".repeat(outerCount);
+
+      return (
+        `${outerLeft}` +
+        `<span class="chat-message-highlight">{${varName}}</span>` +
+        `${outerRight}`
+      );
+    })
+    // preserve new-lines
+    .replace(/\n/g, "<br />");
+
   const renderPromptText = () => (
     <span
       id={id}
@@ -64,52 +66,44 @@ export default function PromptAreaComponent({
         disabled && !editNode && promptContentClasses.disabled,
       )}
     >
-      {value !== ""
-        ? value
-        : getPlaceholder(disabled, "Type your prompt here...")}
+      {value !== "" ? (
+        <SanitizedHTMLWrapper
+          className="m-0 whitespace-pre-wrap p-0 text-xs"
+          content={coloredContent}
+          suppressWarning={true}
+        />
+      ) : (
+        <span className="text-sm text-muted-foreground">
+          {getPlaceholder(disabled, "Type your prompt here...")}
+        </span>
+      )}
     </span>
   );
 
-  const renderExternalLinkIcon = () => (
-    <>
-      <div
-        className={cn(
-          externalLinkIconClasses.gradient({ disabled, editNode }),
-          editNode
-            ? externalLinkIconClasses.editNodeTop
-            : externalLinkIconClasses.normalTop,
-        )}
-        style={{
-          pointerEvents: "none",
-          background: disabled ? "" : GRADIENT_CLASS,
-        }}
-        aria-hidden="true"
-      />
-      <div
-        className={cn(
-          externalLinkIconClasses.background({ disabled, editNode }),
-          editNode
-            ? externalLinkIconClasses.editNodeTop
-            : externalLinkIconClasses.normalTop,
-          disabled && "bg-border",
-        )}
-        aria-hidden="true"
-      />
-      <IconComponent
+  const renderExternalLinkIcon = () =>
+    !value || value == "" ? (
+      <ForwardedIconComponent
         name={disabled ? "lock" : "Scan"}
         className={cn(
-          externalLinkIconClasses.icon,
-          editNode
-            ? externalLinkIconClasses.editNodeTop
-            : externalLinkIconClasses.normalTop,
+          "icons-parameters-comp pointer-events-none absolute right-3 top-1/2 h-4 w-4 shrink-0 -translate-y-1/2",
           disabled ? "text-placeholder-foreground" : "text-foreground",
         )}
       />
-    </>
-  );
+    ) : (
+      <></>
+    );
+
+  if (!showParameter) {
+    return null;
+  }
 
   return (
-    <div className={cn("w-full", disabled && "pointer-events-none")}>
+    <div
+      className={cn(
+        "w-full !max-h-[7.5rem]",
+        disabled && "pointer-events-none",
+      )}
+    >
       <PromptModal
         id={id}
         field_name={field_name}

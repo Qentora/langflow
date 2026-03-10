@@ -1,7 +1,8 @@
+import { useEffect, useState } from "react";
 import IconComponent from "@/components/common/genericIconComponent";
 import ShadTooltip from "@/components/common/shadTooltipComponent";
 import { Button } from "@/components/ui/button";
-import { TableOptionsTypeAPI } from "@/types/api";
+import type { TableOptionsTypeAPI } from "@/types/api";
 import { cn } from "@/utils/utils";
 
 export default function TableOptions({
@@ -10,6 +11,7 @@ export default function TableOptions({
   deleteRow,
   hasSelection,
   stateChange,
+  paginationInfo,
   addRow,
   tableOptions,
 }: {
@@ -20,14 +22,28 @@ export default function TableOptions({
   hasSelection: boolean;
   stateChange: boolean;
   tableOptions?: TableOptionsTypeAPI;
+  paginationInfo?: string;
 }): JSX.Element {
+  const [tabIndex, setTabIndex] = useState(-1);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setTabIndex(0);
+    }, 10);
+  }, []);
+
   return (
     <div className={cn("absolute bottom-3 left-6")}>
       <div className="flex items-center gap-3">
         {addRow && !tableOptions?.block_add && (
           <div>
             <ShadTooltip content={"Add a new row"}>
-              <Button data-testid="add-row-button" unstyled onClick={addRow}>
+              <Button
+                data-testid="add-row-button"
+                unstyled
+                onClick={addRow}
+                tabIndex={tabIndex}
+              >
                 <IconComponent
                   name="Plus"
                   className={cn("h-5 w-5 text-primary transition-all")}
@@ -52,6 +68,7 @@ export default function TableOptions({
                 unstyled
                 onClick={duplicateRow}
                 disabled={!hasSelection}
+                tabIndex={tabIndex}
               >
                 <IconComponent
                   name="Copy"
@@ -82,6 +99,7 @@ export default function TableOptions({
                 unstyled
                 onClick={deleteRow}
                 disabled={!hasSelection}
+                tabIndex={tabIndex}
               >
                 <IconComponent
                   name="Trash2"
@@ -105,6 +123,7 @@ export default function TableOptions({
                 resetGrid();
               }}
               disabled={!stateChange}
+              tabIndex={tabIndex}
             >
               <IconComponent
                 name="RotateCcw"
@@ -119,6 +138,13 @@ export default function TableOptions({
             </Button>
           </ShadTooltip>
         </div>
+        {paginationInfo && (
+          <div className="ml-2 text-xs text-muted-foreground">
+            <ShadTooltip content="Pagination Info">
+              <span>{paginationInfo}</span>
+            </ShadTooltip>
+          </div>
+        )}
       </div>
     </div>
   );

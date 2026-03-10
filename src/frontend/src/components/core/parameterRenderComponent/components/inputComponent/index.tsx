@@ -1,11 +1,11 @@
+import * as Form from "@radix-ui/react-form";
+import { useEffect, useRef, useState } from "react";
 import ForwardedIconComponent from "@/components/common/genericIconComponent";
 import { Input } from "@/components/ui/input";
 import { ICON_STROKE_WIDTH } from "@/constants/constants";
-import { InputComponentType } from "@/types/components";
+import type { InputComponentType } from "@/types/components";
 import { handleKeyDown } from "@/utils/reactflowUtils";
 import { classNames, cn } from "@/utils/utils";
-import * as Form from "@radix-ui/react-form";
-import { useEffect, useRef, useState } from "react";
 import { getIconName } from "./components/helpers/get-icon-name";
 import CustomInputPopover from "./components/popover";
 import CustomInputPopoverObject from "./components/popoverObject";
@@ -40,8 +40,13 @@ export default function InputComponent({
   nodeStyle,
   isToolMode,
   popoverWidth,
+  commandWidth,
+  blockAddNewGlobalVariable = false,
+  hasRefreshButton = false,
+  inspectionPanel = false,
 }: InputComponentType): JSX.Element {
   const [pwdVisible, setPwdVisible] = useState(false);
+  const [cursor, setCursor] = useState<number | null>(null);
   const refInput = useRef<HTMLInputElement>(null);
   const [showOptions, setShowOptions] = useState<boolean>(false);
 
@@ -50,6 +55,13 @@ export default function InputComponent({
       onChange("", true);
     }
   }, [disabled]);
+
+  // Restore cursor position after value changes
+  useEffect(() => {
+    if (cursor !== null && refInput.current) {
+      refInput.current.setSelectionRange(cursor, cursor);
+    }
+  }, [cursor, value]);
 
   function onInputLostFocus(event): void {
     if (onBlur) onBlur(event);
@@ -80,6 +92,7 @@ export default function InputComponent({
             )}
             placeholder={password && editNode ? "Key" : placeholder}
             onChange={(e) => {
+              setCursor(e.target.selectionStart);
               if (onChangeFolderName) {
                 return onChangeFolderName(e);
               }
@@ -122,6 +135,7 @@ export default function InputComponent({
               blurOnEnter={blurOnEnter}
               optionsPlaceholder={optionsPlaceholder}
               className={className}
+              inspectionPanel={inspectionPanel}
             />
           ) : (
             <CustomInputPopover
@@ -151,54 +165,59 @@ export default function InputComponent({
               optionsPlaceholder={optionsPlaceholder}
               nodeStyle={nodeStyle}
               popoverWidth={popoverWidth}
+              commandWidth={commandWidth}
+              blockAddNewGlobalVariable={blockAddNewGlobalVariable}
+              hasRefreshButton={hasRefreshButton}
+              inspectionPanel={inspectionPanel}
             />
           )}
         </>
       )}
 
-      {(setSelectedOption || setSelectedOptions) && (
-        <span
-          className={cn(
-            password && selectedOption === "" ? "right-8" : "right-0",
-            "absolute inset-y-0 flex items-center pr-2.5",
-            disabled && "cursor-not-allowed opacity-50",
-          )}
-        >
-          <button
-            disabled={disabled}
-            onClick={(e) => {
-              if (disabled) return;
-              setShowOptions(!showOptions);
-              e.preventDefault();
-              e.stopPropagation();
-            }}
+      {(setSelectedOption || setSelectedOptions) &&
+        !blockAddNewGlobalVariable && (
+          <span
             className={cn(
-              onChange && setSelectedOption && selectedOption !== ""
-                ? "text-accent-emerald-foreground"
-                : "text-placeholder-foreground",
-              !disabled && "hover:text-foreground",
+              password && selectedOption === "" ? "right-8" : "right-0",
+              "absolute inset-y-0 flex items-center pr-2.5",
+              disabled && "cursor-not-allowed opacity-50",
             )}
           >
-            <ForwardedIconComponent
-              name={
-                getIconName(
-                  disabled!,
-                  selectedOption!,
-                  optionsIcon,
-                  nodeStyle!,
-                  isToolMode!,
-                ) || "ChevronsUpDown"
-              }
+            <button
+              disabled={disabled}
+              onClick={(e) => {
+                if (disabled) return;
+                setShowOptions(!showOptions);
+                e.preventDefault();
+                e.stopPropagation();
+              }}
               className={cn(
-                disabled ? "cursor-grab text-placeholder" : "cursor-pointer",
-                "icon-size",
+                onChange && setSelectedOption && selectedOption !== ""
+                  ? "text-accent-emerald-foreground"
+                  : "text-placeholder-foreground",
+                !disabled && "hover:text-foreground",
               )}
-              strokeWidth={ICON_STROKE_WIDTH}
-              aria-hidden="true"
-            />
-          </button>
-        </span>
-      )}
+            >
+              <ForwardedIconComponent
+                name={
+                  getIconName(
+                    disabled!,
+                    selectedOption!,
+                    optionsIcon,
+                    nodeStyle!,
+                    isToolMode!,
+                  ) || "ChevronsUpDown"
+                }
+                className={cn(
+                  disabled ? "cursor-grab text-placeholder" : "cursor-pointer",
+                  "icon-size",
+                )}
+                strokeWidth={ICON_STROKE_WIDTH}
+                aria-hidden="true"
+              />
+            </button>
+          </span>
+        )}
 
       {password && (!setSelectedOption || selectedOption === "") && (
         <button

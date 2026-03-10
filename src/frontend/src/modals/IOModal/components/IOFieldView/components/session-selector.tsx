@@ -1,3 +1,5 @@
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import IconComponent from "@/components/common/genericIconComponent";
 import ShadTooltip from "@/components/common/shadTooltipComponent";
 import { Input } from "@/components/ui/input";
@@ -8,9 +10,10 @@ import {
   SelectTrigger,
 } from "@/components/ui/select-custom";
 import { useUpdateSessionName } from "@/controllers/API/queries/messages/use-rename-session";
+import { useGetFlowId } from "@/modals/IOModal/hooks/useGetFlowId";
 import useFlowStore from "@/stores/flowStore";
+import { useVoiceStore } from "@/stores/voiceStore";
 import { cn } from "@/utils/utils";
-import React, { useEffect, useRef, useState } from "react";
 
 export default function SessionSelector({
   deleteSession,
@@ -21,6 +24,10 @@ export default function SessionSelector({
   updateVisibleSession,
   selectedView,
   setSelectedView,
+  playgroundPage,
+  setActiveSession,
+  menuOpen,
+  onMenuOpenChange,
 }: {
   deleteSession: (session: string) => void;
   session: string;
@@ -30,12 +37,19 @@ export default function SessionSelector({
   updateVisibleSession: (session: string) => void;
   selectedView?: { type: string; id: string };
   setSelectedView: (view: { type: string; id: string } | undefined) => void;
+  playgroundPage: boolean;
+  setActiveSession: (session: string) => void;
+  menuOpen?: boolean;
+  onMenuOpenChange?: (open: boolean) => void;
 }) {
-  const currentFlowId = useFlowStore((state) => state.currentFlow?.id);
+  const currentFlowId = useGetFlowId();
   const [isEditing, setIsEditing] = useState(false);
   const [editedSession, setEditedSession] = useState(session);
   const { mutate: updateSessionName } = useUpdateSessionName();
   const inputRef = useRef<HTMLInputElement>(null);
+  const _setNewChatOnPlayground = useFlowStore(
+    (state) => state.setNewChatOnPlayground,
+  );
 
   useEffect(() => {
     setEditedSession(session);
@@ -58,13 +72,13 @@ export default function SessionSelector({
         {
           onSuccess: () => {
             if (isVisible) {
-              updateVisibleSession(editedSession);
+              updateVisibleSession(editedSession.trim());
             }
             if (
               selectedView?.type === "Session" &&
               selectedView?.id === session
             ) {
-              setSelectedView({ type: "Session", id: editedSession });
+              setSelectedView({ type: "Session", id: editedSession.trim() });
             }
           },
         },
@@ -108,15 +122,20 @@ export default function SessionSelector({
     }
   };
 
+  const setNewSessionCloseVoiceAssistant = useVoiceStore(
+    (state) => state.setNewSessionCloseVoiceAssistant,
+  );
+
   return (
     <div
       data-testid="session-selector"
       onClick={(e) => {
+        setNewSessionCloseVoiceAssistant(true);
         if (isEditing) e.stopPropagation();
         else toggleVisibility();
       }}
       className={cn(
-        "file-component-accordion-div group cursor-pointer rounded-md text-left text-[13px] hover:bg-secondary-hover",
+        "file-component-accordion-div group cursor-pointer rounded-md text-left text-mmd hover:bg-secondary-hover",
         isVisible ? "bg-secondary-hover font-semibold" : "font-normal",
       )}
     >
@@ -149,20 +168,34 @@ export default function SessionSelector({
             </div>
           ) : (
             <ShadTooltip styleClasses="z-50" content={session}>
-              <div
-                className={cn(
-                  "w-full whitespace-nowrap group-hover:truncate-secondary-hover",
-                  isVisible
-                    ? "truncate-secondary-hover"
-                    : "truncate-muted dark:truncate-canvas",
-                )}
-              >
-                {session === currentFlowId ? "Default Session" : session}
+              <div className="relative w-full overflow-hidden">
+                <span className="w-full truncate">
+                  {session === currentFlowId ? "Default Session" : session}
+                </span>
+                <div
+                  className={cn(
+                    "pointer-events-none absolute left-0 right-0 top-0 h-full whitespace-nowrap",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "h-full w-full group-hover:truncate-secondary-hover",
+                      isVisible
+                        ? "truncate-secondary-hover"
+                        : "truncate-muted dark:truncate-canvas",
+                    )}
+                  ></div>
+                </div>
               </div>
             </ShadTooltip>
           )}
         </div>
-        <Select value={""} onValueChange={handleSelectChange}>
+        <Select
+          value={""}
+          onValueChange={handleSelectChange}
+          open={menuOpen}
+          onOpenChange={onMenuOpenChange}
+        >
           <ShadTooltip styleClasses="z-50" side="right" content="Options">
             <SelectTrigger
               onClick={(e) => {

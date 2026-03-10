@@ -1,15 +1,12 @@
-import { expect, test } from "@playwright/test";
 import * as dotenv from "dotenv";
-import { readFileSync } from "fs";
 import path from "path";
+import { expect, test } from "../../fixtures";
 import { awaitBootstrapTest } from "../../utils/await-bootstrap-test";
-import { getAllResponseMessage } from "../../utils/get-all-response-message";
 import { initialGPTsetup } from "../../utils/initialGPTsetup";
-import { waitForOpenModalWithChatInput } from "../../utils/wait-for-open-modal";
 import { withEventDeliveryModes } from "../../utils/withEventDeliveryModes";
 
 withEventDeliveryModes(
-  "Youtube Analysis",
+  "YouTube Analysis",
   { tag: ["@release", "@starter-projects"] },
   async ({ page }) => {
     test.skip(
@@ -30,9 +27,9 @@ withEventDeliveryModes(
     await awaitBootstrapTest(page);
 
     await page.getByTestId("side_nav_options_all-templates").click();
-    await page.getByRole("heading", { name: "Youtube Analysis" }).click();
+    await page.getByRole("heading", { name: "YouTube Analysis" }).click();
 
-    await page.waitForSelector('[data-testid="fit_view"]', {
+    await page.waitForSelector('[data-testid="canvas_controls_dropdown"]', {
       timeout: 100000,
     });
 

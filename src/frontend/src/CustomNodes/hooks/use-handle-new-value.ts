@@ -1,14 +1,31 @@
+import { useUpdateNodeInternals } from "@xyflow/react";
+import { cloneDeep, debounce } from "lodash";
+import { useCallback, useMemo, useRef } from "react";
+import { DEBOUNCE_FIELD_LIST } from "@/constants/constants";
 import { usePostTemplateValue } from "@/controllers/API/queries/nodes/use-post-template-value";
 import { track } from "@/customization/utils/analytics";
 import useAlertStore from "@/stores/alertStore";
 import useFlowStore from "@/stores/flowStore";
 import useFlowsManagerStore from "@/stores/flowsManagerStore";
-import { APIClassType, InputFieldType } from "@/types/api";
-import { AllNodeType } from "@/types/flow";
-import { useUpdateNodeInternals } from "@xyflow/react";
-import { cloneDeep } from "lodash";
-import { useCallback, useMemo } from "react";
+import type { APIClassType, InputFieldType } from "@/types/api";
+import type { AllNodeType } from "@/types/flow";
 import { mutateTemplate } from "../helpers/mutate-template";
+
+const DEBOUNCE_TIME_1_SECOND = 1000;
+
+// Must match ALL_OPERATION_FIELDS in data_operations.py
+const DATA_OPERATIONS_OPERATION_FIELDS = [
+  "select_keys_input",
+  "filter_key",
+  "operator",
+  "filter_values",
+  "append_update_data",
+  "remove_keys_input",
+  "rename_keys_input",
+  "mapped_json_display",
+  "selected_key",
+  "query",
+];
 
 export type handleOnNewValueType = (
   changes: Partial<InputFieldType>,
@@ -72,7 +89,8 @@ const useHandleOnNewValue = ({
     [nodeId, setNode, updateNodeInternals],
   );
 
-  // Memoize the handleOnNewValue function
+  const debouncedMutateRef = useRef<any>(null);
+
   const handleOnNewValue: handleOnNewValueType = useCallback(
     async (changes, options?) => {
       const newNode = cloneDeep(node);
@@ -97,11 +115,34 @@ const useHandleOnNewValue = ({
         return;
       }
 
+      const shouldDebounce = DEBOUNCE_FIELD_LIST.includes(
+        parameter?._input_type,
+      );
+
       if (!options?.skipSnapshot) takeSnapshot();
 
       Object.entries(changes).forEach(([key, value]) => {
         if (value !== undefined) parameter[key] = value;
       });
+
+      // When Data Operations "operations" list is cleared, optimistically hide operation-specific fields
+      // so the UI updates immediately without waiting for the debounced API response
+      if (
+        name === "operations" &&
+        Array.isArray(changes.value) &&
+        changes.value.length === 0 &&
+        node.display_name === "Data Operations"
+      ) {
+        for (const field of DATA_OPERATIONS_OPERATION_FIELDS) {
+          if (
+            template[field] &&
+            typeof template[field] === "object" &&
+            "show" in template[field]
+          ) {
+            template[field].show = false;
+          }
+        }
+      }
 
       const shouldUpdate = parameter.real_time_refresh;
 
@@ -111,7 +152,28 @@ const useHandleOnNewValue = ({
       };
 
       if (shouldUpdate && changes.value !== undefined) {
-        await mutateTemplate(
+        if (!debouncedMutateRef.current) {
+          debouncedMutateRef.current = debounce(
+            async (
+              value,
+              node,
+              setNodeClassFn,
+              postTemplateFn,
+              setErrorDataFn,
+            ) => {
+              await mutateTemplate(
+                value,
+                nodeId,
+                node,
+                setNodeClassFn,
+                postTemplateFn,
+                setErrorDataFn,
+              );
+            },
+            shouldDebounce ? DEBOUNCE_TIME_1_SECOND : 0,
+          );
+        }
+        debouncedMutateRef.current(
           changes.value,
           newNode,
           setNodeClass,

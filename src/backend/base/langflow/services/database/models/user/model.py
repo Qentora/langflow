@@ -1,16 +1,27 @@
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
+from pydantic import BaseModel
+from sqlalchemy import JSON, Column
 from sqlmodel import Field, Relationship, SQLModel
 
 from langflow.schema.serialize import UUIDstr
 
 if TYPE_CHECKING:
-    from langflow.services.database.models.api_key import ApiKey
-    from langflow.services.database.models.flow import Flow
-    from langflow.services.database.models.folder import Folder
-    from langflow.services.database.models.variable import Variable
+    from langflow.services.database.models.api_key.model import ApiKey
+    from langflow.services.database.models.deployment.model import Deployment
+    from langflow.services.database.models.deployment_provider_account.model import DeploymentProviderAccount
+    from langflow.services.database.models.flow.model import Flow
+    from langflow.services.database.models.folder.model import Folder
+    from langflow.services.database.models.variable.model import Variable
+
+
+class UserOptin(BaseModel):
+    github_starred: bool = Field(default=False)
+    dialog_dismissed: bool = Field(default=False)
+    discord_clicked: bool = Field(default=False)
+    # Add more opt-in actions as needed
 
 
 class User(SQLModel, table=True):  # type: ignore[call-arg]
@@ -29,6 +40,17 @@ class User(SQLModel, table=True):  # type: ignore[call-arg]
     )
     store_api_key: str | None = Field(default=None, nullable=True)
     flows: list["Flow"] = Relationship(back_populates="user")
+    # User is a secondary parent, so cascade="delete" (no "delete-orphan").
+    # Orphan management is handled by the owning models
+    # (DeploymentProviderAccount, Folder) which use "all, delete, delete-orphan".
+    deployment_provider_accounts: list["DeploymentProviderAccount"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "delete"},
+    )
+    deployments: list["Deployment"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "delete"},
+    )
     variables: list["Variable"] = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"cascade": "delete"},
@@ -37,11 +59,17 @@ class User(SQLModel, table=True):  # type: ignore[call-arg]
         back_populates="user",
         sa_relationship_kwargs={"cascade": "delete"},
     )
+    optins: dict[str, Any] | None = Field(
+        sa_column=Column(JSON, default=lambda: UserOptin().model_dump(), nullable=True)
+    )
 
 
 class UserCreate(SQLModel):
     username: str = Field()
     password: str = Field()
+    optins: dict[str, Any] | None = Field(
+        default={"github_starred": False, "dialog_dismissed": False, "discord_clicked": False}
+    )
 
 
 class UserRead(SQLModel):
@@ -54,6 +82,7 @@ class UserRead(SQLModel):
     create_at: datetime = Field()
     updated_at: datetime = Field()
     last_login_at: datetime | None = Field(nullable=True)
+    optins: dict[str, Any] | None = Field(default=None)
 
 
 class UserUpdate(SQLModel):
@@ -63,3 +92,4 @@ class UserUpdate(SQLModel):
     is_active: bool | None = None
     is_superuser: bool | None = None
     last_login_at: datetime | None = None
+    optins: dict[str, Any] | None = None

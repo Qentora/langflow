@@ -1,9 +1,8 @@
 from unittest.mock import MagicMock
 
 from langchain_core.language_models import BaseLanguageModel
-from typing_extensions import override
-
 from pydantic import BaseModel, Field
+from typing_extensions import override
 
 
 class MockLanguageModel(BaseLanguageModel, BaseModel):
@@ -67,7 +66,7 @@ class MockLanguageModel(BaseLanguageModel, BaseModel):
     async def apredict_messages(self, *args, **kwargs):
         raise NotImplementedError
 
-    def bind_tools(self, tools):
+    def bind_tools(self, tools, tool_choice=None):  # noqa: ARG002
         """Bind tools to the model for testing."""
         self.tools = tools
         return self

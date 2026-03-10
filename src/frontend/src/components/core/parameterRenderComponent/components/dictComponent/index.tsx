@@ -5,22 +5,30 @@ import DictAreaModal from "../../../../../modals/dictAreaModal";
 import { classNames, cn, toTitleCase } from "../../../../../utils/utils";
 import ForwardedIconComponent from "../../../../common/genericIconComponent";
 import { Button } from "../../../../ui/button";
-import { InputProps } from "../../types";
+import type { InputProps } from "../../types";
 
 export default function DictComponent({
-  value = [],
+  value,
   handleOnNewValue,
   disabled,
   editNode = false,
   id = "",
   name = "",
-}: InputProps<object | object[] | string, { name: string }>): JSX.Element {
+  showParameter = true,
+}: InputProps<
+  object | object[] | string,
+  { name: string }
+>): JSX.Element | null {
   useEffect(() => {
-    if (disabled) {
+    if (disabled || value === null) {
       handleOnNewValue({ value: {} }, { skipSnapshot: true });
     }
   }, [disabled]);
   const placeholderName = `Edit ${toTitleCase(name)}`;
+
+  if (!showParameter) {
+    return null;
+  }
 
   return (
     <div
